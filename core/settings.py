@@ -25,7 +25,7 @@ SECRET_KEY = "django-insecure-tp-^p9k-4jw6e2!@7=a3n$ckfz2a5eg5-q+p-=r3amz@hf2e%@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['adamant-code.onrender.com']
+ALLOWED_HOSTS = ['adamant-code.onrender.com', '127.0.0.1', 'localhost']
 
 
 # Application definition

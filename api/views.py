@@ -2,15 +2,12 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 import requests
-import base64
 from decouple import config
 
 post_url = "https://temidun2003ade.wpcomstaging.com/wp-json/wp/v2/posts/"
 media_url = "https://temidun2003ade.wpcomstaging.com/wp-json/wp/v2/media"
 get_url = "https://temidun2003ade.wpcomstaging.com/wp-json/wp/v2/posts/"
-username = config("user")
-password = config("passkey")
-auth_header = "Basic " + base64.b64encode((username + ':' + password).encode()).decode()
+token = config("token")
 
 
 @api_view(['POST'])
@@ -33,7 +30,7 @@ def create_post(request):
             '.jpeg') else 'image/png'
 
         headers = {
-            'Authorization': auth_header,
+            'Authorization': f'Bearer {token}',
             'Content-Type': content_type,  # Adjust based on image type
             'Content-Disposition': 'attachment; filename=' + image_url.split('/')[-1]
         }
@@ -57,7 +54,7 @@ def create_post(request):
             }
 
             # Create the post
-            post_response = requests.post(post_url, json=post_data, headers={"Authorization": auth_header})
+            post_response = requests.post(post_url, json=post_data, headers={'Authorization': f'Bearer {token}'})
 
             if post_response.status_code == 201:
                 return Response({"message": "Post created successfully!", "post_id": post_response.json().get('id')},
@@ -84,7 +81,7 @@ def delete_post(request):
 
     delete_url = f"https://temidun2003ade.wpcomstaging.com/wp-json/wp/v2/posts/{post_id}"
 
-    response = requests.delete(delete_url, headers={"Authorization": auth_header})
+    response = requests.delete(delete_url, headers={'Authorization': f'Bearer {token}'})
 
     # Check if the deletion was successful
     if response.status_code == 200:
@@ -115,7 +112,7 @@ def edit_post(request):
         "status": action
     }
 
-    response = requests.put(edit_url, json=data, headers={"Authorization": auth_header})
+    response = requests.put(edit_url, json=data, headers={'Authorization': f'Bearer {token}',})
 
     if response.status_code == 200:
         return Response("Post updated successfully!", status=status.HTTP_200_OK)
