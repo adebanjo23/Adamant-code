@@ -1,6 +1,4 @@
 import json
-
-import openai
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -205,32 +203,13 @@ def article_seo(request):
         "Related keywords SEO score": seo_data_json["data"]["Related keywords"]["SEO Score"]
     }
 
-    changes = {
-        "Title tag": {
-            "Recommendation": "Shorten the Title tag to maximum 67 characters.",
-            "Action": "Use the focus keyword \"how to change medicaid insurance provider\" at the beginning of the Title tag."
-        },
-        "Meta description": {
-            "Recommendation": "Ensure the Meta description targets the focus keyword \"how to change medicaid insurance provider\" and contains at least 156 characters.",
-            "Action": "Consider revising the Meta description to provide a comprehensive description of the topic and include the focus keyword at the beginning."
-        },
-        "Page headings": {
-            "Recommendation": "Add an H1 tag to the content and use the focus keyword in the H1 tag.",
-            "Action": "Include a relevant H1 tag with the focus keyword \"how to change medicaid insurance provider\"."
-        },
-        "On page links": {
-            "Recommendation": "Include at least 2 internal or external links within the content.",
-            "Action": "Add relevant internal or external links to enhance the user experience and improve SEO."
-        },
-        "Image analysis": {
-            "Recommendation": "Add images to the content and ensure the image name and ALT tag contain the focus keyword.",
-            "Action": "Include images in the content and optimize their names and ALT tags to include the focus keyword."
-        },
-        "Related keywords": {
-            "Recommendation": "Include a minimum of 3 related keywords.",
-            "Action": "Add related keywords related to the topic to enhance SEO."
-        }
-    }
+    changes = {}
+    for aspect, aspect_data in seo_data_json["data"].items():
+        if "Feedback details" in aspect_data:
+            aspect_changes = {}
+            for feedback, details in aspect_data["Feedback details"].items():
+                aspect_changes[feedback] = details["text"]
+            changes[aspect] = aspect_changes
 
     formatted_output = {
         "article_seo_score": article_seo_score,
