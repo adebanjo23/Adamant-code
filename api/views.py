@@ -1,13 +1,18 @@
+import json
+
+import openai
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 import requests
 from decouple import config
+from bs4 import BeautifulSoup
 
 post_url = "https://temidun2003ade.wpcomstaging.com/wp-json/wp/v2/posts/"
 media_url = "https://temidun2003ade.wpcomstaging.com/wp-json/wp/v2/media"
 get_url = "https://temidun2003ade.wpcomstaging.com/wp-json/wp/v2/posts/"
 token = config("token")
+seo_api_key = config("seo_api_key")
 
 
 @api_view(['POST'])
@@ -112,7 +117,7 @@ def edit_post(request):
         "status": action
     }
 
-    response = requests.put(edit_url, json=data, headers={'Authorization': f'Bearer {token}',})
+    response = requests.put(edit_url, json=data, headers={'Authorization': f'Bearer {token}', })
 
     if response.status_code == 200:
         return Response("Post updated successfully!", status=status.HTTP_200_OK)
@@ -141,3 +146,95 @@ def get_posts(request):
     else:
         return Response(f"Failed to fetch posts. Status code: {response.status_code}",
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+def curl_function(tool_request_url, data):
+    response = requests.post(tool_request_url, json=data)
+    return response.json()
+
+
+@api_view(['POST'])
+def article_seo(request):
+    if request.method != 'POST':
+        return Response("Invalid request method", status=status.HTTP_400_BAD_REQUEST)
+
+    data = request.POST.get('article')
+    meta_description = request.POST.get('meta_description')
+    keyword_input = request.POST.get('focus_keyword')
+    related_keywords = request.POST.get('additional_keyword')
+
+    article_lines = data.split('\n')
+    title_tag = article_lines[0].replace('Title: ', '')
+
+    content_index = data.find('Content:')
+    if content_index == -1:
+        return Response("Invalid article format", status=status.HTTP_400_BAD_REQUEST)
+
+    # Extract article content after "Content:"
+    body_content = data[content_index + len('Content:'):].strip()
+
+    data = {
+        'content_input': {
+            'title_tag': title_tag,
+            'meta_description': meta_description,
+            'body_content': body_content.strip()
+        }
+    }
+
+    api_key = seo_api_key
+
+    # URL generation with proper encoding
+    tool_request_url = "https://api.seoreviewtools.com/v5/seo-content-optimization/?content=1&keyword={}&relatedkeywords={}&key={}".format(
+        requests.utils.quote(keyword_input),
+        requests.utils.quote(related_keywords),
+        api_key
+    )
+
+    seo_data_json = curl_function(tool_request_url, data)
+
+    # Formatting the output
+    article_seo_score = {
+        "Overall SEO score": seo_data_json["data"]["Overview"]["Overall SEO score"],
+        "Title tag SEO score": seo_data_json["data"]["Title tag"]["SEO Score"],
+        "Meta description SEO score": seo_data_json["data"]["Meta description"]["SEO Score"],
+        "Page headings SEO score": seo_data_json["data"]["Page headings"]["SEO Score"],
+        "Content length SEO score": seo_data_json["data"]["Content length"]["SEO Score"],
+        "On page links SEO score": seo_data_json["data"]["On page links"]["SEO Score"],
+        "Image analysis SEO score": seo_data_json["data"]["Image analysis"]["SEO Score"],
+        "Keyword usage SEO score": seo_data_json["data"]["Keyword usage"]["SEO Score"],
+        "Related keywords SEO score": seo_data_json["data"]["Related keywords"]["SEO Score"]
+    }
+
+    changes = {
+        "Title tag": {
+            "Recommendation": "Shorten the Title tag to maximum 67 characters.",
+            "Action": "Use the focus keyword \"how to change medicaid insurance provider\" at the beginning of the Title tag."
+        },
+        "Meta description": {
+            "Recommendation": "Ensure the Meta description targets the focus keyword \"how to change medicaid insurance provider\" and contains at least 156 characters.",
+            "Action": "Consider revising the Meta description to provide a comprehensive description of the topic and include the focus keyword at the beginning."
+        },
+        "Page headings": {
+            "Recommendation": "Add an H1 tag to the content and use the focus keyword in the H1 tag.",
+            "Action": "Include a relevant H1 tag with the focus keyword \"how to change medicaid insurance provider\"."
+        },
+        "On page links": {
+            "Recommendation": "Include at least 2 internal or external links within the content.",
+            "Action": "Add relevant internal or external links to enhance the user experience and improve SEO."
+        },
+        "Image analysis": {
+            "Recommendation": "Add images to the content and ensure the image name and ALT tag contain the focus keyword.",
+            "Action": "Include images in the content and optimize their names and ALT tags to include the focus keyword."
+        },
+        "Related keywords": {
+            "Recommendation": "Include a minimum of 3 related keywords.",
+            "Action": "Add related keywords related to the topic to enhance SEO."
+        }
+    }
+
+    formatted_output = {
+        "article_seo_score": article_seo_score,
+        "recommended changes": changes
+    }
+
+    return Response(formatted_output)
